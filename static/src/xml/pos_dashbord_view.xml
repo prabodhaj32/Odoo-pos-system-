@@ -1,0 +1,1644 @@
+<templates xml:space="preserve">
+<t t-name="shop_pos_frontend.Dashboard" owl="1">
+
+<div class="pos_dashboard">
+
+<!-- Notification Container -->
+<div class="notification-container">
+    <t t-foreach="state.notifications" t-as="notification" t-key="notification.id">
+        <div t-att-class="'notification ' + notification.type">
+            <div class="notification-header">
+                <span class="notification-title" t-esc="notification.type.charAt(0).toUpperCase() + notification.type.slice(1)"/>
+                <button class="notification-close" t-on-click="() => this.removeNotification(notification.id)">×</button>
+            </div>
+            <div class="notification-message" t-esc="notification.message"/>
+        </div>
+    </t>
+</div>
+
+<div class="pos_layout">
+    <!-- Sidebar Menu -->
+    <div class="pos_sidebar" t-att-class="'pos_sidebar' + (state.sidebarCollapsed ? ' collapsed' : '')">
+        <button class="toggle_btn" t-on-click="() => state.sidebarCollapsed = !state.sidebarCollapsed">
+            <img src="/shop_pos_frontend/static/src/img/removebk.png" alt="Menu Toggle" class="toggle_icon"/>
+        </button>
+        <!-- <h3>Menu</h3> -->
+        <ul class="sidebar_menu">
+            <t t-foreach="getMenuItems()" t-as="menu" t-key="menu.id">
+                <li t-att-class="'menu_item' + (state.activeMenu === menu.id ? ' active' : '') + (menu.id === 'logout' ? ' logout' : '')">
+                    <div class="menu_main" t-on-click="() => this.setActiveMenu(menu.id)">
+                        <i t-att-class="'fa ' + menu.icon"></i>
+                        <span><t t-esc="menu.name"/></span>
+                    </div>
+
+                    <!-- Submenu -->
+                    <t t-if="menu.children">
+                        <ul t-att-class="'submenu' + (submenuState[menu.id] ? ' open' : '')">
+                            <t t-foreach="menu.children" t-as="child" t-key="child.id">
+                                <li t-att-class="'menu_item child' + (state.activeMenu === child.id ? ' active' : '')"
+                                    t-on-click="() => this.setActiveMenu(child.id, menu.id)">
+                                    <span><t t-esc="child.name"/></span>
+                                </li>
+                            </t>
+                        </ul>
+                    </t>
+                </li>
+            </t>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="pos_main_content">
+
+        <header class="page_header">
+            <div class="header_left">
+                <h1 class="page_title">
+                    <img src="/shop_pos_frontend/static/src/img/removebk.png" alt="Dashboard Icon" class="title_icon"/>
+                    <!-- <span>Shop POS System</span> -->
+                     <span class="brand_name"><span class="brand_white">Tringle</span><span class="brand_green">do</span></span>
+                    <!-- <small class="system_version"></small> -->
+                </h1>
+                <div class="page_breadcrumb">
+                    <span class="breadcrumb_item">Home</span>
+                    <i class="fa fa-angle-right breadcrumb_separator"></i>
+                    <span class="breadcrumb_item active" t-esc="getCurrentPageName()"></span>
+                </div>
+            </div>
+            <div class="header_right">
+                <img src="/shop_pos_frontend/static/src/img/removebk.png" alt="Company Logo" class="header_logo"/>
+            </div>
+        </header>
+
+        <!-- POS page -->
+        <t t-if="state.activeMenu === 'pos_sale'">
+            <div class="pos_page pos_page_pos">
+                <div class="products_header">
+                    <div>
+                        <h2>POS</h2>
+                        <p>Search products, filter by category, and quickly add to cart.</p>
+                    </div>
+                    <button class="view_toggle" t-on-click="() => this.toggleViewMode()">
+                        <i t-att-class="state.viewMode === 'slide' ? 'fa fa-th' : 'fa fa-bars'"></i>
+                    </button>
+                </div>
+
+                <div class="pos_filters">
+                    <input type="text"
+                           class="pos_search_input"
+                           placeholder="Search products..."
+                           t-att-value="state.posSearch"
+                           t-on-input="(ev) => state.posSearch = ev.target.value"/>
+                    <div class="pos_category_chips">
+                        <button class="chip"
+                                t-att-class="!state.posCategoryFilter ? 'chip active' : 'chip'"
+                                t-on-click="() => state.posCategoryFilter = ''">
+                            All
+                        </button>
+                        <t t-foreach="getPosCategories()" t-as="cat" t-key="cat">
+                            <button class="chip"
+                                    t-att-class="state.posCategoryFilter === cat ? 'chip active' : 'chip'"
+                                    t-on-click="() => state.posCategoryFilter = cat">
+                                <t t-esc="cat"/>
+                            </button>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="pos_container">
+                    <div class="pos_products">
+                        <div t-att-class="state.viewMode === 'slide' ? 'products_slide' : 'products_grid'">
+                            <t t-foreach="getPOSVisibleProducts()" t-as="product" t-key="product.id">
+                                <div class="product_card pos_product_card">
+                                    <div style="position:relative; display:inline-block;">
+                                    <img t-att-src="product.image" 
+                                         alt="Product Image" 
+                                         t-on-error="handleImageError"
+                                         style="display:block; width:100px; height:100px; object-fit:cover; border-radius:8px;"
+                                         loading="lazy"/>
+                                    <div t-if="!product.image" 
+                                         style="position:absolute; top:0; left:0; width:100px; height:100px; background:#f3f4f6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px; text-align:center;">
+                                        No Image
+                                    </div>
+                                </div>
+                                    <p class="product_name"><t t-esc="product.name"/></p>
+                                    <p class="product_meta">
+                                        <span><t t-esc="product.category"/></span>
+                                    </p>
+                                    <div class="pos_product_footer">
+                                        <span class="product_price">$<t t-esc="product.price"/></span>
+                                        <span class="stock_badge">
+                                            <t t-esc="product.stock"/> in stock
+                                        </span>
+                                    </div>
+                                    <button t-on-click="() => this.addToCart(product)">Add to Cart</button>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="pos_cart">
+                        <h2>Cart</h2>
+                        <t t-if="state.cart.length === 0">
+                            <p class="empty_cart">Cart is empty</p>
+                        </t>
+                        <t t-foreach="state.cart" t-as="item" t-key="item.id">
+                            <div class="cart_item">
+                                <div class="cart_item_info">
+                                    <span class="cart_item_name"><t t-esc="item.name"/></span>
+                                    <span class="cart_item_price">$<t t-esc="item.price"/></span>
+                                </div>
+                                <div class="cart_item_controls">
+                                    <button class="cart_qty_btn" t-on-click="() => this.updateCartQuantity(item.id, -1)">-</button>
+                                    <span class="cart_qty"><t t-esc="item.quantity"/></span>
+                                    <button class="cart_qty_btn" t-on-click="() => this.updateCartQuantity(item.id, 1)">+</button>
+                                    <button class="cart_remove" t-on-click="() => this.removeFromCart(item.id)">✕</button>
+                                </div>
+                            </div>
+                        </t>
+                        <div class="cart_total">
+                            Total : $<t t-esc="getTotal()"/>
+                        </div>
+                        <button class="checkout_btn" t-on-click="() => this.checkout()">Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Dashboard page -->
+        <t t-elif="state.activeMenu === 'dashboard'">
+            <div class="pos_page dashboard_page">
+                <div class="dashboard_header">
+                    <div>
+                        <h2>Store Overview</h2>
+                        <p>Quick snapshot of stock, movement, and alerts.</p>
+                    </div>
+                    <div class="dashboard_quick_actions">
+                        <button class="btn_confirm" t-on-click="() => this.setActiveMenu('pos_sale')">Open POS</button>
+                        <button class="btn_confirm secondary" t-on-click="() => this.setActiveMenu('inventory')">Inventory</button>
+                        <button class="btn_confirm secondary" t-on-click="() => this.setActiveMenu('products')">Products</button>
+                        <button class="btn_confirm secondary" t-on-click="() => this.setActiveMenu('categories')">Categories</button>
+                    </div>
+                </div>
+
+                <div class="dashboard_grid">
+                    <div class="dashboard_card">
+                        <div class="dashboard_card_header">
+                            <div class="dashboard_card_icon badge_blue">
+                                <i class="fa fa-box"></i>
+                            </div>
+                            <span class="dashboard_card_label">Total Products</span>
+                        </div>
+                        <p class="dashboard_card_value"><t t-esc="state.products.length"/></p>
+                    </div>
+                    <div class="dashboard_card">
+                        <div class="dashboard_card_header">
+                            <div class="dashboard_card_icon badge_indigo">
+                                <i class="fa fa-layer-group"></i>
+                            </div>
+                            <span class="dashboard_card_label">Total Stock</span>
+                        </div>
+                        <p class="dashboard_card_value"><t t-esc="getTotalStock()"/></p>
+                    </div>
+                    <div class="dashboard_card">
+                        <div class="dashboard_card_header">
+                            <div class="dashboard_card_icon badge_green">
+                                <i class="fa fa-dollar-sign"></i>
+                            </div>
+                            <span class="dashboard_card_label">Stock Value</span>
+                        </div>
+                        <p class="dashboard_card_value">$<t t-esc="getStockValue().toFixed(2)"/></p>
+                    </div>
+                    <div class="dashboard_card">
+                        <div class="dashboard_card_header">
+                            <div class="dashboard_card_icon badge_red">
+                                <i class="fa fa-triangle-exclamation"></i>
+                            </div>
+                            <span class="dashboard_card_label">Low Stock Alerts</span>
+                        </div>
+                        <p class="dashboard_card_value"><t t-esc="getLowStockItems().length"/> item(s)</p>
+                    </div>
+                </div>
+
+                <div class="dashboard_two_columns">
+                    <div class="dashboard_section">
+                        <h3>Top Low Stock Products</h3>
+                        <t t-if="getTopLowStockProducts(5).length === 0">
+                            <p>All products have sufficient stock.</p>
+                        </t>
+                        <t t-else="">
+                            <table class="inventory_table compact">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Stock</th>
+                                        <th>Min</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="getTopLowStockProducts(5)" t-as="item" t-key="item.id">
+                                        <tr>
+                                            <td><t t-esc="item.name"/></td>
+                                            <td><t t-esc="item.stock"/></td>
+                                            <td><t t-esc="item.minStock"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+
+                    <div class="dashboard_section">
+                        <h3>Fast Movers</h3>
+                        <t t-if="getFastMovingItems().length === 0">
+                            <p>No fast-moving items at the moment.</p>
+                        </t>
+                        <t t-else="">
+                            <ul class="fast_movers_list">
+                                <t t-foreach="getFastMovingItems()" t-as="item" t-key="item.id">
+                                    <li>
+                                        <span class="name"><t t-esc="item.name"/></span>
+                                        <span class="meta"><t t-esc="item.movement"/> / month</span>
+                                    </li>
+                                </t>
+                            </ul>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="dashboard_section full_width">
+                    <h3>Category Breakdown</h3>
+                    <t t-set="categories" t-value="getCategories()"/>
+                    <t t-if="categories.length === 0">
+                        <p>No products yet. Add products to see category statistics.</p>
+                    </t>
+                    <t t-else="">
+                        <table class="inventory_table compact">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Products</th>
+                                    <th>Total Stock</th>
+                                    <th>Low Stock Items</th>
+                                    <th>Total Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="categories" t-as="cat" t-key="cat.name">
+                                    <tr>
+                                        <td><t t-esc="cat.name"/></td>
+                                        <td><t t-esc="cat.productCount"/></td>
+                                        <td><t t-esc="cat.totalStock"/></td>
+                                        <td><t t-esc="cat.lowStockCount"/></td>
+                                        <td>$<t t-esc="cat.totalValue.toFixed(2)"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </div>
+        </t>
+
+        <!-- Products page -->
+        <t t-elif="state.activeMenu === 'products'">
+            <div class="pos_page products_page">
+
+                <div class="products_header">
+                    <div>
+                        <h2>Products</h2>
+                        <p>Manage your products, prices, and stock.</p>
+                    </div>
+                    <button class="btn_confirm" t-on-click="() => openProductModal()">
+                        + Add Product
+                    </button>
+                </div>
+
+                <t t-set="pStats" t-value="getProductStats()"/>
+                <div class="products_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Products</div>
+                        <div class="stat_value"><t t-esc="pStats.totalProducts"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Categories</div>
+                        <div class="stat_value"><t t-esc="pStats.totalCategories"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Low Stock</div>
+                        <div class="stat_value"><t t-esc="pStats.lowStock"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Avg. Price</div>
+                        <div class="stat_value">$<t t-esc="pStats.avgPrice.toFixed(2)"/></div>
+                    </div>
+                </div>
+
+                <div class="inventory_controls">
+                    <input type="text"
+                           class="search_input"
+                           placeholder="Search products or categories..."
+                           t-att-value="state.inventoryFilter"
+                           t-on-input="(ev) => setInventoryFilter(ev.target.value)"/>
+                </div>
+
+                <div class="products_grid">
+                    <t t-foreach="getFilteredAndSortedProducts()" t-as="product" t-key="product.id">
+                        <div class="product_card product_card_manage">
+                            <div class="product_image_container">
+                                <img t-att-src="product.image" 
+                                     alt="Product Image" 
+                                     t-on-error="handleImageError"
+                                     class="product_card_image"
+                                     loading="lazy"/>
+                                <div t-if="!product.image" class="no_image_placeholder">
+                                    No Image
+                                </div>
+                            </div>
+                            <p class="product_name"><t t-esc="product.name"/></p>
+                            <p class="product_meta">
+                                <span><t t-esc="product.category"/></span> ·
+                                <span>$<t t-esc="product.price"/></span>
+                            </p>
+                            <p class="product_stock_line">
+                                Stock:
+                                <span><t t-esc="product.stock"/></span>
+                                / Min:
+                                <span><t t-esc="product.minStock"/></span>
+                            </p>
+                            <div class="action_buttons">
+                                <button class="btn_edit" t-on-click="() => openProductModal(product)">
+                                    ✏
+                                </button>
+                                <button class="btn_cancel" t-on-click="() => deleteProduct(product.id)">
+                                    🗑
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Product Modal -->
+                <t t-if="state.showProductModal">
+                    <div class="modal_overlay" t-on-click="closeProductModal">
+                        <div class="modal_content" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3 t-if="state.editingProduct">Edit Product</h3>
+                                <h3 t-else="">Add New Product</h3>
+                                <button class="modal_close" t-on-click="closeProductModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="form_group">
+                                    <label>Name</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Product name"
+                                           t-att-value="state.productForm.name"
+                                           t-on-input="(ev) => state.productForm.name = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Category</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Category"
+                                           t-att-value="state.productForm.category"
+                                           t-on-input="(ev) => state.productForm.category = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Price</label>
+                                    <input type="number"
+                                           class="form_input"
+                                           min="0"
+                                           step="0.01"
+                                           t-att-value="state.productForm.price"
+                                           t-on-input="(ev) => state.productForm.price = parseFloat(ev.target.value) || 0"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Stock</label>
+                                    <input type="number"
+                                           class="form_input"
+                                           min="0"
+                                           t-att-value="state.productForm.stock"
+                                           t-on-input="(ev) => state.productForm.stock = parseInt(ev.target.value) || 0"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Min Stock</label>
+                                    <input type="number"
+                                           class="form_input"
+                                           min="0"
+                                           t-att-value="state.productForm.minStock"
+                                           t-on-input="(ev) => state.productForm.minStock = parseInt(ev.target.value) || 0"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Image URL</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="/shop_pos_frontend/static/src/img/example.jpg"
+                                           t-att-value="state.productForm.image"
+                                           t-on-input="(ev) => state.productForm.image = ev.target.value"/>
+                                </div>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeProductModal">Cancel</button>
+                                <button class="btn_confirm" t-on-click="saveProduct">
+                                    <t t-if="state.editingProduct">Update Product</t>
+                                    <t t-else="">Add Product</t>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+            </div>
+        </t>
+
+        <!-- Inventory page -->
+        <t t-elif="state.activeMenu === 'inventory'">
+            <div class="pos_page">
+                <div class="inventory_header">
+                    <h2>Inventory Management</h2>
+                    <p>Track stock levels, manage adjustments, and monitor reorder alerts.</p>
+                </div>
+                
+                <!-- Inventory Stats -->
+                <div class="inventory_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Stock</div>
+                        <div class="stat_value"><t t-esc="getTotalStock()"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Stock Value</div>
+                        <div class="stat_value">$<t t-esc="getStockValue().toFixed(2)"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Low Stock Items</div>
+                        <div class="stat_value"><t t-esc="getLowStockItems().length"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Critical Items</div>
+                        <div class="stat_value"><t t-esc="getCriticalStockItems().length"/></div>
+                    </div>
+                </div>
+
+                <!-- Filter and Controls -->
+                <div class="inventory_controls">
+                    <div class="filter_section">
+                        <input type="text" 
+                               class="search_input" 
+                               placeholder="Search products or categories..."
+                               t-att-value="state.inventoryFilter"
+                               t-on-input="(ev) => setInventoryFilter(ev.target.value)"/>
+                        <t t-if="state.inventoryFilter" style="margin-top: 8px; font-size: 12px; color: #667eea;">
+                            🔍 Filtering: <t t-esc="state.inventoryFilter"/>
+                        </t>
+                    </div>
+                    <div class="sort_section">
+                        <label>Sort by:</label>
+                        <select t-att-value="state.inventorySortBy" 
+                                t-on-change="(ev) => setInventorySort(ev.target.value)">
+                            <option value="name">Name</option>
+                            <option value="stock">Stock</option>
+                            <option value="category">Category</option>
+                            <option value="price">Price</option>
+                            <option value="movement">Movement</option>
+                        </select>
+                        <button class="sort_btn" t-on-click="() => setInventorySort(state.inventorySortBy)">
+                            <i t-att-class="state.inventorySortOrder === 'asc' ? 'fa fa-sort-up' : 'fa fa-sort-down'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Inventory Table -->
+                <div class="inventory_table_container">
+                    <h3>Inventory Details</h3>
+                    <table class="inventory_table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Min Stock</th>
+                                <th>Price</th>
+                                <th>Stock Value</th>
+                                <th>Last Restocked</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="getFilteredAndSortedProducts()" t-as="product" t-key="product.id">
+                                <tr t-att-class="product.stock &lt;= product.minStock ? 'low_stock_row' : ''">
+                                    <td class="product_name">
+                                        <strong><t t-esc="product.name"/></strong>
+                                        <t t-if="product.description" style="font-size: 12px; color: #7f8c8d; margin-top: 4px; display: block;">
+                                            <t t-esc="product.description"/>
+                                        </t>
+                                    </td>
+                                    <td><t t-esc="product.category"/></td>
+                                    <td t-att-style="product.stock &lt;= product.minStock ? 'color: #e74c3c; font-weight: 600;' : ''">
+                                        <t t-esc="product.stock"/>
+                                    </td>
+                                    <td><t t-esc="product.minStock"/></td>
+                                    <td>$<t t-esc="product.price"/></td>
+                                    <td>$<t t-esc="(product.stock * product.price).toFixed(2)"/></td>
+                                    <td><t t-esc="product.lastRestocked"/></td>
+                                    <td>
+                                        <t t-if="product.stock &lt;= Math.floor(product.minStock / 2)">
+                                            <span class="status_critical">Critical</span>
+                                        </t>
+                                        <t t-elif="product.stock &lt;= product.minStock">
+                                            <span class="status_low">Low</span>
+                                        </t>
+                                        <t t-elif="product.stock &gt;= product.minStock * 3">
+                                            <span class="status_overstock">Overstock</span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="status_normal">Normal</span>
+                                        </t>
+                                    </td>
+                                    <td>
+                                        <button class="btn_adjust" t-on-click="() => openStockModal(product)">
+                                            <i class="fa fa-edit"></i> Adjust
+                                        </button>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Stock Adjustment Modal -->
+                <t t-if="state.showStockModal">
+                    <div class="modal_overlay" t-on-click="closeStockModal">
+                        <div class="modal_content" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3>Adjust Stock - <t t-esc="state.selectedProduct.name"/></h3>
+                                <button class="modal_close" t-on-click="closeStockModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="form_group">
+                                    <label>Current Stock:</label>
+                                    <span class="current_stock"><t t-esc="state.selectedProduct.stock"/></span>
+                                </div>
+                                <div class="form_group">
+                                    <label>Adjustment (+/-):</label>
+                                    <input type="number" 
+                                           class="form_input" 
+                                           t-att-value="state.stockAdjustment"
+                                           t-on-input="(ev) => state.stockAdjustment = parseInt(ev.target.value) || 0"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>New Stock:</label>
+                                    <span class="new_stock"><t t-esc="state.selectedProduct.stock + state.stockAdjustment"/></span>
+                                </div>
+                                <div class="form_group">
+                                    <label>Reason:</label>
+                                    <select class="form_input" t-att-value="state.adjustmentReason" 
+                                            t-on-change="(ev) => state.adjustmentReason = ev.target.value">
+                                        <option value="">Select reason...</option>
+                                        <option value="Purchase">New Purchase</option>
+                                        <option value="Return">Customer Return</option>
+                                        <option value="Damage">Damage/Loss</option>
+                                        <option value="Correction">Stock Correction</option>
+                                        <option value="Transfer">Stock Transfer</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeStockModal">Cancel</button>
+                                <button class="btn_confirm" t-on-click="adjustStock">Adjust Stock</button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+            </div>
+        </t>
+
+        <!-- Categories page -->
+        <t t-elif="state.activeMenu === 'categories'">
+            <div class="pos_page">
+                <div class="categories_header">
+                    <h2>Categories Management</h2>
+                    <p>Manage product categories, view statistics, and organize your inventory.</p>
+                    <button class="btn_add_category" t-on-click="() => openCategoryModal()">
+                        <i class="fa fa-plus"></i> Add New Category
+                    </button>
+                </div>
+
+                <!-- Category Statistics -->
+                <div class="category_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Categories</div>
+                        <div class="stat_value"><t t-esc="getCategoryStats().totalCategories"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Total Products</div>
+                        <div class="stat_value"><t t-esc="getCategoryStats().totalProducts"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Low Stock Categories</div>
+                        <div class="stat_value"><t t-esc="getCategoryStats().lowStockCategories"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Total Value</div>
+                        <div class="stat_value">$<t t-esc="getCategoryStats().totalValue.toFixed(2)"/></div>
+                    </div>
+                </div>
+
+                <!-- Filter and Controls -->
+                <div class="category_controls">
+                    <div class="filter_section">
+                        <input type="text" 
+                               class="search_input" 
+                               placeholder="Search categories..."
+                               t-att-value="state.categoryFilter"
+                               t-on-input="(ev) => setCategoryFilter(ev.target.value)"/>
+                    </div>
+                    <div class="sort_section">
+                        <label>Sort by:</label>
+                        <select t-att-value="state.categorySortBy" 
+                                t-on-change="(ev) => setCategorySort(ev.target.value)">
+                            <option value="name">Name</option>
+                            <option value="productCount">Products</option>
+                            <option value="totalStock">Stock</option>
+                            <option value="totalValue">Value</option>
+                            <option value="lowStockCount">Low Stock Items</option>
+                        </select>
+                        <button class="sort_btn" t-on-click="() => setCategorySort(state.categorySortBy)">
+                            <i t-att-class="state.categorySortOrder === 'asc' ? 'fa fa-sort-up' : 'fa fa-sort-down'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Categories Grid -->
+                <div class="categories_grid_container">
+                    <t t-foreach="getFilteredAndSortedCategories()" t-as="category" t-key="category.name">
+                        <div class="category_card" t-att-class="category.lowStockCount > 0 ? 'has_low_stock' : ''">
+                            <div class="category_header">
+                                <h3><t t-esc="category.name"/></h3>
+                                <div class="category_actions">
+                                    <button class="btn_edit" t-on-click="() => openCategoryModal(category)">
+                                        <i class="fa fa-edit"></i>
+                                    </button>
+                                    <t t-if="category.name !== 'Uncategorized'">
+                                        <button class="btn_delete" t-on-click="() => deleteCategory(category.name)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </t>
+                                </div>
+                            </div>
+                            
+                            <div class="category_stats_row">
+                                <div class="stat_item">
+                                    <span class="stat_label">Products:</span>
+                                    <span class="stat_value"><t t-esc="category.productCount"/></span>
+                                </div>
+                                <div class="stat_item">
+                                    <span class="stat_label">Total Stock:</span>
+                                    <span class="stat_value"><t t-esc="category.totalStock"/></span>
+                                </div>
+                            </div>
+                            
+                            <div class="category_stats_row">
+                                <div class="stat_item">
+                                    <span class="stat_label">Value:</span>
+                                    <span class="stat_value">$<t t-esc="category.totalValue.toFixed(2)"/></span>
+                                </div>
+                                <div class="stat_item">
+                                    <span class="stat_label">Low Stock:</span>
+                                    <span class="stat_value low_stock" t-att-class="category.lowStockCount > 0 ? 'warning' : ''">
+                                        <t t-esc="category.lowStockCount"/>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <t t-if="category.lowStockCount > 0" class="low_stock_warning">
+                                <div class="warning_banner">
+                                    <i class="fa fa-exclamation-triangle"></i>
+                                    <span><t t-esc="category.lowStockCount"/> products need restocking</span>
+                                </div>
+                            </t>
+
+                            <div class="category_products_preview">
+                                <div class="preview_header">
+                                    <span>Top Products</span>
+                                </div>
+                                <div class="products_list">
+                                    <t t-foreach="category.products.slice(0, 3)" t-as="product" t-key="product.id">
+                                        <div class="product_preview_item">
+                                            <span class="product_name"><t t-esc="product.name"/></span>
+                                            <span class="product_stock" t-att-class="product.stock &lt;= product.minStock ? 'low' : ''">
+                                                <t t-esc="product.stock"/>
+                                            </span>
+                                        </div>
+                                    </t>
+                                    <t t-if="category.productCount > 3">
+                                        <div class="more_products">
+                                            +<t t-esc="category.productCount - 3"/> more
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Category Modal -->
+                <t t-if="state.showCategoryModal">
+                    <div class="modal_overlay" t-on-click="closeCategoryModal">
+                        <div class="modal_content" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3 t-if="state.editingCategory">Edit Category</h3>
+                                <h3 t-else="">Add New Category</h3>
+                                <button class="modal_close" t-on-click="closeCategoryModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="form_group">
+                                    <label>Category Name:</label>
+                                    <input type="text" 
+                                           class="form_input" 
+                                           placeholder="Enter category name"
+                                           t-att-value="state.newCategoryName"
+                                           t-on-input="(ev) => state.newCategoryName = ev.target.value"/>
+                                </div>
+                                <t t-if="state.editingCategory">
+                                    <div class="form_group">
+                                        <label>Current Products:</label>
+                                        <div class="category_products">
+                                            <t t-foreach="state.selectedCategory.products" t-as="product" t-key="product.id">
+                                                <div class="product_tag">
+                                                    <t t-esc="product.name"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeCategoryModal">Cancel</button>
+                                <button class="btn_confirm" t-on-click="saveCategory">
+                                    <t t-if="state.editingCategory">Update Category</t>
+                                    <t t-else="">Add Category</t>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- Suppliers page -->
+        <t t-elif="state.activeMenu === 'suppliers'">
+            <div class="pos_page suppliers_page">
+                <div class="suppliers_header">
+                    <div>
+                        <h2>Suppliers</h2>
+                        <p>Add suppliers, manage their details, track supplied products and purchase orders.</p>
+                    </div>
+                    <button class="btn_confirm" t-on-click="() => openSupplierModal()">
+                        + Add Supplier
+                    </button>
+                </div>
+
+                <!-- Supplier statistics -->
+                <t t-set="sStats" t-value="getSupplierStats()"/>
+                <div class="supplier_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Suppliers</div>
+                        <div class="stat_value"><t t-esc="sStats.totalSuppliers"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Active</div>
+                        <div class="stat_value"><t t-esc="sStats.activeSuppliers"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">On Hold</div>
+                        <div class="stat_value"><t t-esc="sStats.onHoldSuppliers"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Purchase Orders</div>
+                        <div class="stat_value"><t t-esc="sStats.totalPurchaseOrders"/></div>
+                    </div>
+                </div>
+
+                <!-- Suppliers list -->
+                <div class="suppliers_list_container">
+                    <h3>Suppliers</h3>
+                    <t t-if="state.suppliers.length === 0">
+                        <p>No suppliers yet. Click “Add Supplier” to create one.</p>
+                    </t>
+                    <t t-else="">
+                        <table class="suppliers_table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Contact</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Products</th>
+                                    <th>Last Order</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.suppliers" t-as="supplier" t-key="supplier.id">
+                                    <tr>
+                                        <td class="supplier_name">
+                                            <t t-esc="supplier.name"/>
+                                        </td>
+                                        <td>
+                                            <t t-esc="supplier.contactName or ''"/>
+                                        </td>
+                                        <td><t t-esc="supplier.email"/></td>
+                                        <td><t t-esc="supplier.phone"/></td>
+                                        <td>
+                                            <t t-set="sProds" t-value="getSupplierProducts(supplier)"/>
+                                            <span class="badge_count">
+                                                <t t-esc="sProds.length"/> product(s)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <t t-esc="supplier.lastOrderDate or '-'"/>
+                                        </td>
+                                        <td>
+                                            <span class="supplier_status" t-att-class="'status_' + supplier.status">
+                                                <t t-esc="supplier.status"/>
+                                            </span>
+                                        </td>
+                                        <td class="supplier_actions">
+                                            <button class="btn_view" t-on-click="() => viewSupplierDetails(supplier)">
+                                                <i class="fa fa-eye"></i> View
+                                            </button>
+                                            <button class="btn_edit" t-on-click="() => openSupplierModal(supplier)">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+
+                <!-- Supplier detail and purchase orders -->
+                <t t-if="state.selectedSupplier">
+                    <div class="supplier_detail_panel">
+                        <div class="supplier_detail_header">
+                            <h3><t t-esc="state.selectedSupplier.name"/></h3>
+                            <button class="btn_cancel" t-on-click="clearSelectedSupplier">Close</button>
+                        </div>
+                        <div class="supplier_detail_body">
+                            <div class="supplier_detail_column">
+                                <h4>Supplier Details</h4>
+                                <p><strong>Contact:</strong> <t t-esc="state.selectedSupplier.contactName or '-'"/></p>
+                                <p><strong>Email:</strong> <t t-esc="state.selectedSupplier.email or '-'"/></p>
+                                <p><strong>Phone:</strong> <t t-esc="state.selectedSupplier.phone or '-'"/></p>
+                                <p><strong>Address:</strong> <t t-esc="state.selectedSupplier.address or '-'"/></p>
+                            </div>
+                            <div class="supplier_detail_column">
+                                <h4>Supplier Products</h4>
+                                <t t-set="detailProducts" t-value="getSupplierProducts(state.selectedSupplier)"/>
+                                <t t-if="detailProducts.length === 0">
+                                    <p>No linked products yet.</p>
+                                </t>
+                                <t t-else="">
+                                    <ul class="supplier_products_list">
+                                        <t t-foreach="detailProducts" t-as="prod" t-key="prod.id">
+                                            <li>
+                                                <span class="name"><t t-esc="prod.name"/></span>
+                                                <span class="meta">$<t t-esc="prod.price"/> · Stock: <t t-esc="prod.stock"/></span>
+                                            </li>
+                                        </t>
+                                    </ul>
+                                </t>
+                            </div>
+                            <div class="supplier_detail_column">
+                                <h4>Purchase Orders</h4>
+                                <t t-set="sPOs" t-value="getPurchaseOrdersBySupplier(state.selectedSupplier.id)"/>
+                                <t t-if="sPOs.length === 0">
+                                    <p>No purchase orders recorded.</p>
+                                </t>
+                                <t t-else="">
+                                    <table class="supplier_po_table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ref</th>
+                                                <th>Date</th>
+                                                <th>Total</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="sPOs" t-as="po" t-key="po.id">
+                                                <tr>
+                                                    <td><t t-esc="po.reference"/></td>
+                                                    <td><t t-esc="po.date"/></td>
+                                                    <td>$<t t-esc="po.total"/></td>
+                                                    <td><t t-esc="po.status"/></td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Supplier Modal -->
+                <t t-if="state.showSupplierModal">
+                    <div class="modal_overlay" t-on-click="closeSupplierModal">
+                        <div class="modal_content" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3 t-if="state.editingSupplier">Edit Supplier</h3>
+                                <h3 t-else="">Add Supplier</h3>
+                                <button class="modal_close" t-on-click="closeSupplierModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="form_group">
+                                    <label>Name</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Supplier name"
+                                           t-att-value="state.supplierForm.name"
+                                           t-on-input="(ev) => state.supplierForm.name = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Contact Name</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Contact person"
+                                           t-att-value="state.supplierForm.contactName"
+                                           t-on-input="(ev) => state.supplierForm.contactName = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Email</label>
+                                    <input type="email"
+                                           class="form_input"
+                                           placeholder="email@example.com"
+                                           t-att-value="state.supplierForm.email"
+                                           t-on-input="(ev) => state.supplierForm.email = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Phone</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="+1-555-0000"
+                                           t-att-value="state.supplierForm.phone"
+                                           t-on-input="(ev) => state.supplierForm.phone = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Address</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Street, City"
+                                           t-att-value="state.supplierForm.address"
+                                           t-on-input="(ev) => state.supplierForm.address = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Status</label>
+                                    <select class="form_input"
+                                            t-att-value="state.supplierForm.status"
+                                            t-on-change="(ev) => state.supplierForm.status = ev.target.value">
+                                        <option value="active">Active</option>
+                                        <option value="on_hold">On Hold</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeSupplierModal">Cancel</button>
+                                <button class="btn_confirm" t-on-click="saveSupplier">
+                                    <t t-if="state.editingSupplier">Update Supplier</t>
+                                    <t t-else="">Save Supplier</t>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- Customers page -->
+        <t t-elif="state.activeMenu === 'customers'">
+            <div class="pos_page customers_page">
+                <div class="customers_header">
+                    <div>
+                        <h2>Customers</h2>
+                        <p>Manage your customers, view their purchases, and reward loyalty.</p>
+                    </div>
+                    <button class="btn_confirm" t-on-click="() => openCustomerModal()">
+                        + Add Customer
+                    </button>
+                </div>
+
+                <!-- Customer statistics -->
+                <t t-set="cStats" t-value="getCustomerStats()"/>
+                <div class="customer_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Customers</div>
+                        <div class="stat_value"><t t-esc="cStats.totalCustomers"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Total Loyalty Points</div>
+                        <div class="stat_value"><t t-esc="cStats.totalLoyaltyPoints"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Customer Revenue</div>
+                        <div class="stat_value">$<t t-esc="cStats.totalCustomerRevenue.toFixed(2)"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">VIP Customers</div>
+                        <div class="stat_value"><t t-esc="cStats.vipCustomers"/></div>
+                    </div>
+                </div>
+
+                <!-- Customer list -->
+                <div class="customers_list_container">
+                    <h3>Customer List</h3>
+                    <t t-if="state.customers.length === 0">
+                        <p>No customers yet. Add your first customer to start tracking purchases.</p>
+                    </t>
+                    <t t-else="">
+                        <table class="customers_table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Total Spent</th>
+                                    <th>Orders</th>
+                                    <th>Loyalty</th>
+                                    <th>Last Purchase</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.customers" t-as="customer" t-key="customer.id">
+                                    <tr>
+                                        <td class="customer_name"><t t-esc="customer.name"/></td>
+                                        <td><t t-esc="customer.email"/></td>
+                                        <td><t t-esc="customer.phone"/></td>
+                                        <td>$<t t-esc="(customer.totalSpent || 0).toFixed(2)"/></td>
+                                        <td><t t-esc="customer.totalOrders || 0"/></td>
+                                        <td>
+                                            <span class="loyalty_badge">
+                                                <t t-esc="customer.loyaltyPoints || 0"/> pts
+                                            </span>
+                                        </td>
+                                        <td><t t-esc="customer.lastPurchaseDate or '-'"/></td>
+                                        <td class="customer_actions">
+                                            <button class="btn_view" t-on-click="() => viewCustomerDetails(customer)">
+                                                <i class="fa fa-eye"></i> View
+                                            </button>
+                                            <button class="btn_edit" t-on-click="() => openCustomerModal(customer)">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn_confirm secondary" t-on-click="() => addLoyaltyPoints(customer.id, 10)">
+                                                +10 pts
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+
+                <!-- Customer detail / purchase history -->
+                <t t-if="state.selectedCustomer">
+                    <div class="customer_detail_panel">
+                        <div class="customer_detail_header">
+                            <h3><t t-esc="state.selectedCustomer.name"/></h3>
+                            <button class="btn_cancel" t-on-click="clearSelectedCustomer">Close</button>
+                        </div>
+                        <div class="customer_detail_body">
+                            <div class="customer_detail_column">
+                                <h4>Customer Details</h4>
+                                <p><strong>Email:</strong> <t t-esc="state.selectedCustomer.email or '-'"/></p>
+                                <p><strong>Phone:</strong> <t t-esc="state.selectedCustomer.phone or '-'"/></p>
+                                <p><strong>Address:</strong> <t t-esc="state.selectedCustomer.address or '-'"/></p>
+                                <p><strong>Loyalty Points:</strong> <t t-esc="state.selectedCustomer.loyaltyPoints || 0"/></p>
+                            </div>
+                            <div class="customer_detail_column">
+                                <h4>Purchase History</h4>
+                                <t t-set="cOrders" t-value="getCustomerOrders(state.selectedCustomer)"/>
+                                <t t-if="cOrders.length === 0">
+                                    <p>No orders yet for this customer.</p>
+                                </t>
+                                <t t-else="">
+                                    <table class="customer_orders_table">
+                                        <thead>
+                                            <tr>
+                                                <th>Order</th>
+                                                <th>Date</th>
+                                                <th>Total</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="cOrders" t-as="order" t-key="order.id">
+                                                <tr>
+                                                    <td>#<t t-esc="order.id"/></td>
+                                                    <td><t t-esc="new Date(order.createdAt).toLocaleDateString()"/></td>
+                                                    <td>$<t t-esc="order.total.toFixed(2)"/></td>
+                                                    <td><t t-esc="order.status"/></td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Customer Modal -->
+                <t t-if="state.showCustomerModal">
+                    <div class="modal_overlay" t-on-click="closeCustomerModal">
+                        <div class="modal_content" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3 t-if="state.editingCustomer">Edit Customer</h3>
+                                <h3 t-else="">Add Customer</h3>
+                                <button class="modal_close" t-on-click="closeCustomerModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="form_group">
+                                    <label>Name</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Customer name"
+                                           t-att-value="state.customerForm.name"
+                                           t-on-input="(ev) => state.customerForm.name = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Email</label>
+                                    <input type="email"
+                                           class="form_input"
+                                           placeholder="email@example.com"
+                                           t-att-value="state.customerForm.email"
+                                           t-on-input="(ev) => state.customerForm.email = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Phone</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="+1-555-0000"
+                                           t-att-value="state.customerForm.phone"
+                                           t-on-input="(ev) => state.customerForm.phone = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Address</label>
+                                    <input type="text"
+                                           class="form_input"
+                                           placeholder="Street, City"
+                                           t-att-value="state.customerForm.address"
+                                           t-on-input="(ev) => state.customerForm.address = ev.target.value"/>
+                                </div>
+                                <div class="form_group">
+                                    <label>Loyalty Points</label>
+                                    <input type="number"
+                                           class="form_input"
+                                           min="0"
+                                           t-att-value="state.customerForm.loyaltyPoints"
+                                           t-on-input="(ev) => state.customerForm.loyaltyPoints = parseInt(ev.target.value) || 0"/>
+                                </div>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeCustomerModal">Cancel</button>
+                                <button class="btn_confirm" t-on-click="saveCustomer">
+                                    <t t-if="state.editingCustomer">Update Customer</t>
+                                    <t t-else="">Save Customer</t>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- Orders page -->
+        <t t-elif="state.activeMenu === 'orders'">
+            <div class="pos_page orders_page">
+                <div class="orders_header">
+                    <h2>Orders Management</h2>
+                    <p>View and manage customer orders, track order status, and generate receipts.</p>
+                </div>
+
+                <!-- Order Statistics -->
+                <div class="order_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Orders</div>
+                        <div class="stat_value"><t t-esc="getOrderStats().total"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Pending Orders</div>
+                        <div class="stat_value"><t t-esc="getOrderStats().pending"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Completed Orders</div>
+                        <div class="stat_value"><t t-esc="getOrderStats().completed"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Total Revenue</div>
+                        <div class="stat_value">$<t t-esc="getOrderStats().totalRevenue.toFixed(2)"/></div>
+                    </div>
+                </div>
+
+                <!-- Orders List -->
+                <div class="orders_list_container">
+                    <h3>All Orders</h3>
+                    <t t-if="state.orders.length === 0">
+                        <div class="empty_orders">
+                            <p>No orders yet. Create your first order from the POS section.</p>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="orders_table_container">
+                            <table class="orders_table">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.orders.slice().reverse()" t-as="order" t-key="order.id">
+                                        <tr t-att-class="'order_row ' + order.status">
+                                            <td class="order_id">#<t t-esc="order.id"/></td>
+                                            <td>
+                                                <t t-if="order.customerName">
+                                                    <t t-esc="order.customerName"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <em>Walk-in Customer</em>
+                                                </t>
+                                            </td>
+                                            <td><t t-esc="order.items.length"/> item(s)</td>
+                                            <td class="order_total">$<t t-esc="order.total.toFixed(2)"/></td>
+                                            <td>
+                                                <span class="order_status" t-att-class="'status_' + order.status">
+                                                    <t t-esc="order.status"/>
+                                                </span>
+                                            </td>
+                                            <td><t t-esc="new Date(order.createdAt).toLocaleDateString()"/></td>
+                                            <td class="order_actions">
+                                                <button class="btn_view" t-on-click="() => viewOrderDetails(order)">
+                                                    <i class="fa fa-eye"></i> View
+                                                </button>
+                                                <t t-if="order.status === 'pending'">
+                                                    <button class="btn_complete" t-on-click="() => completeOrder(order.id)">
+                                                        <i class="fa fa-check"></i> Complete
+                                                    </button>
+                                                    <button class="btn_cancel" t-on-click="() => cancelOrder(order.id)">
+                                                        <i class="fa fa-times"></i> Cancel
+                                                    </button>
+                                                </t>
+                                                <t t-if="order.status === 'completed'">
+                                                    <button class="btn_print" t-on-click="() => printReceipt(order)">
+                                                        <i class="fa fa-print"></i> Print
+                                                    </button>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Order Details Modal -->
+                <t t-if="state.showOrderModal">
+                    <div class="modal_overlay" t-on-click="closeOrderModal">
+                        <div class="modal_content large_modal" t-on-click.stop="">
+                            <div class="modal_header">
+                                <h3>Order Details #<t t-esc="state.currentOrder.id"/></h3>
+                                <button class="modal_close" t-on-click="closeOrderModal">×</button>
+                            </div>
+                            <div class="modal_body">
+                                <div class="order_details_grid">
+                                    <div class="order_info_section">
+                                        <h4>Order Information</h4>
+                                        <div class="info_grid">
+                                            <div class="info_item">
+                                                <label>Order ID:</label>
+                                                <span>#<t t-esc="state.currentOrder.id"/></span>
+                                            </div>
+                                            <div class="info_item">
+                                                <label>Status:</label>
+                                                <span class="order_status" t-att-class="'status_' + state.currentOrder.status">
+                                                    <t t-esc="state.currentOrder.status"/>
+                                                </span>
+                                            </div>
+                                            <div class="info_item">
+                                                <label>Created:</label>
+                                                <span><t t-esc="new Date(state.currentOrder.createdAt).toLocaleString()"/></span>
+                                            </div>
+                                            <t t-if="state.currentOrder.completedAt">
+                                                <div class="info_item">
+                                                    <label>Completed:</label>
+                                                    <span><t t-esc="new Date(state.currentOrder.completedAt).toLocaleString()"/></span>
+                                                </div>
+                                            </t>
+                                            <div class="info_item">
+                                                <label>Payment Method:</label>
+                                                <span><t t-esc="state.currentOrder.paymentMethod"/></span>
+                                            </div>
+                                            <t t-if="state.currentOrder.customerName">
+                                                <div class="info_item">
+                                                    <label>Customer:</label>
+                                                    <span><t t-esc="state.currentOrder.customerName"/></span>
+                                                </div>
+                                            </t>
+                                            <t t-if="state.currentOrder.customerPhone">
+                                                <div class="info_item">
+                                                    <label>Phone:</label>
+                                                    <span><t t-esc="state.currentOrder.customerPhone"/></span>
+                                                </div>
+                                            </t>
+                                            <t t-if="state.currentOrder.customerEmail">
+                                                <div class="info_item">
+                                                    <label>Email:</label>
+                                                    <span><t t-esc="state.currentOrder.customerEmail"/></span>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <div class="order_items_section">
+                                        <h4>Order Items</h4>
+                                        <div class="order_items_list">
+                                            <t t-foreach="state.currentOrder.items" t-as="item" t-key="item.id">
+                                                <div class="order_item">
+                                                    <div class="item_info">
+                                                        <span class="item_name"><t t-esc="item.name"/></span>
+                                                        <span class="item_quantity">Qty: <t t-esc="item.quantity"/></span>
+                                                    </div>
+                                                    <div class="item_price">
+                                                        <span class="unit_price">$<t t-esc="item.price.toFixed(2)"/></span>
+                                                        <span class="total_price">$<t t-esc="item.total.toFixed(2)"/></span>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <div class="order_total_section">
+                                            <div class="order_total">
+                                                <span class="total_label">Total:</span>
+                                                <span class="total_amount">$<t t-esc="state.currentOrder.total.toFixed(2)"/></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <t t-if="state.currentOrder.notes">
+                                    <div class="order_notes_section">
+                                        <h4>Notes</h4>
+                                        <p><t t-esc="state.currentOrder.notes"/></p>
+                                    </div>
+                                </t>
+                            </div>
+                            <div class="modal_footer">
+                                <button class="btn_cancel" t-on-click="closeOrderModal">Close</button>
+                                <t t-if="state.currentOrder.status === 'completed'">
+                                    <button class="btn_print" t-on-click="() => printReceipt(state.currentOrder)">
+                                        <i class="fa fa-print"></i> Print Receipt
+                                    </button>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- Reports page -->
+        <t t-elif="state.activeMenu === 'reports'">
+            <div class="pos_page reports_page">
+                <div class="reports_header">
+                    <div>
+                        <h2>Reports</h2>
+                        <p>View sales performance and product trends.</p>
+                    </div>
+                </div>
+
+                <t t-set="summary" t-value="getSalesSummary()"/>
+                <div class="reports_stats">
+                    <div class="stat_card">
+                        <div class="stat_title">Total Sales</div>
+                        <div class="stat_value">$<t t-esc="summary.totalSales.toFixed(2)"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Completed Orders</div>
+                        <div class="stat_value"><t t-esc="summary.totalOrders"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Avg. Order Value</div>
+                        <div class="stat_value">$<t t-esc="summary.avgOrderValue.toFixed(2)"/></div>
+                    </div>
+                    <div class="stat_card">
+                        <div class="stat_title">Products</div>
+                        <div class="stat_value"><t t-esc="summary.totalProducts"/></div>
+                    </div>
+                </div>
+
+                <div class="reports_sections">
+                    <div class="reports_block">
+                        <h3>Top Products by Sales</h3>
+                        <t t-set="topProducts" t-value="getTopProductsBySales(5)"/>
+                        <t t-if="topProducts.length === 0">
+                            <p>No completed orders yet.</p>
+                        </t>
+                        <t t-else="">
+                            <table class="reports_table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity Sold</th>
+                                        <th>Total Sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="topProducts" t-as="p" t-key="p.productId">
+                                        <tr>
+                                            <td><t t-esc="p.name"/></td>
+                                            <td><t t-esc="p.qty"/></td>
+                                            <td>$<t t-esc="p.total.toFixed(2)"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                    <div class="reports_block">
+                        <h3>Recent Orders</h3>
+                        <t t-if="state.orders.length === 0">
+                            <p>No orders yet.</p>
+                        </t>
+                        <t t-else="">
+                            <table class="reports_table">
+                                <thead>
+                                    <tr>
+                                        <th>Order</th>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.orders.slice().reverse().slice(0, 10)" t-as="order" t-key="order.id">
+                                        <tr>
+                                            <td>#<t t-esc="order.id"/></td>
+                                            <td><t t-esc="new Date(order.createdAt).toLocaleDateString()"/></td>
+                                            <td>
+                                                <t t-if="order.customerName">
+                                                    <t t-esc="order.customerName"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <em>Walk-in</em>
+                                                </t>
+                                            </td>
+                                            <td><t t-esc="order.status"/></td>
+                                            <td>$<t t-esc="order.total.toFixed(2)"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Employees page -->
+        <t t-elif="state.activeMenu === 'employees'">
+            <div class="pos_page employees_page">
+                <div class="employees_header">
+                    <div>
+                        <h2>Employees</h2>
+                        <p>Manage staff members, roles, and activity.</p>
+                    </div>
+                </div>
+
+                <div class="employees_list_container">
+                    <h3>Staff List</h3>
+                    <table class="employees_table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="getStaffList()" t-as="staff" t-key="staff.id">
+                                <tr>
+                                    <td class="employee_name"><t t-esc="staff.name"/></td>
+                                    <td><t t-esc="staff.role"/></td>
+                                    <td>
+                                        <span class="employee_status" t-att-class="staff.status === 'active' ? 'status_active' : 'status_inactive'">
+                                            <t t-esc="staff.status"/>
+                                        </span>
+                                    </td>
+                                    <td><t t-esc="staff.lastLogin"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </t>
+
+        <!-- Settings page -->
+        <t t-elif="state.activeMenu === 'settings'">
+            <div class="pos_page settings_page">
+                <div class="settings_header">
+                    <div>
+                        <h2>Settings</h2>
+                        <p>Configure POS dashboard preferences and behavior.</p>
+                    </div>
+                </div>
+
+                <div class="settings_grid">
+                    <div class="settings_card">
+                        <h3>Display</h3>
+                        <div class="setting_row">
+                            <div class="setting_info">
+                                <span class="setting_label">Dark Mode</span>
+                                <span class="setting_help">Use darker colors for low-light environments.</span>
+                            </div>
+                            <button class="toggle_switch"
+                                    t-on-click="() => toggleSettingFlag('darkMode')">
+                                <t t-if="state.settingsConfig and state.settingsConfig.darkMode">On</t>
+                                <t t-else="">Off</t>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings_card">
+                        <h3>Sound</h3>
+                        <div class="setting_row">
+                            <div class="setting_info">
+                                <span class="setting_label">Enable Sounds</span>
+                                <span class="setting_help">Play feedback sounds on key actions.</span>
+                            </div>
+                            <button class="toggle_switch"
+                                    t-on-click="() => toggleSettingFlag('soundEnabled')">
+                                <t t-if="state.settingsConfig and state.settingsConfig.soundEnabled">On</t>
+                                <t t-else="">Off</t>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings_card">
+                        <h3>Printing</h3>
+                        <div class="setting_row">
+                            <div class="setting_info">
+                                <span class="setting_label">Auto-print receipt</span>
+                                <span class="setting_help">Automatically print receipt after order completion.</span>
+                            </div>
+                            <button class="toggle_switch"
+                                    t-on-click="() => toggleSettingFlag('autoPrintReceipt')">
+                                <t t-if="state.settingsConfig and state.settingsConfig.autoPrintReceipt">On</t>
+                                <t t-else="">Off</t>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Logout page -->
+        <t t-elif="state.activeMenu === 'logout'">
+            <div class="pos_page logout_page">
+                <div class="logout_card">
+                    <h2>Logout</h2>
+                    <p>To keep your data safe, close your POS session when leaving the terminal.</p>
+                    <button class="btn_confirm" t-on-click="handleLogout">
+                        Confirm Logout
+                    </button>
+                </div>
+            </div>
+        </t>
+
+        <!-- Fallback page -->
+        <t t-else="">
+            <div class="pos_page">
+                <h2>Coming Soon</h2>
+                <p>This section is under construction.</p>
+            </div>
+        </t>
+
+    </div>
+</div>
+
+</div>
+</t>
+</templates>

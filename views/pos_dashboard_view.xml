@@ -1,0 +1,401 @@
+<templates xml:space="preserve">
+
+<t t-name="shop_pos_frontend.Dashboard" owl="1">
+
+<div class="pos_dashboard">
+
+<div class="pos_layout">
+
+<!-- ================= SIDEBAR ================= -->
+
+<div class="pos_sidebar" t-att-class="'pos_sidebar' + (state.sidebarCollapsed ? ' collapsed' : '')">
+
+<button class="toggle_btn"
+        t-on-click="() => state.sidebarCollapsed = !state.sidebarCollapsed">
+
+<img class="toggle_icon" src="/shop_pos_frontend/static/src/img/removebk.png" alt="Toggle sidebar"/>
+
+</button>
+
+
+<ul class="sidebar_menu">
+
+<t t-foreach="getMenuItems()" t-as="menu" t-key="menu.id">
+
+<li t-att-class="'menu_item' + (state.activeMenu === menu.id ? ' active' : '')">
+
+<div class="menu_main"
+     t-on-click="() => setActiveMenu(menu.id)">
+
+<i t-att-class="'fa ' + menu.icon"/>
+
+<span><t t-esc="menu.name"/></span>
+
+</div>
+
+
+<t t-if="menu.children">
+
+<ul t-att-class="'submenu' + (submenuState[menu.id] ? ' open' : '')">
+
+<t t-foreach="menu.children"
+   t-as="child"
+   t-key="child.id">
+
+<li t-att-class="'menu_item child' + (state.activeMenu === child.id ? ' active' : '')"
+    t-on-click="() => setActiveMenu(child.id, menu.id)">
+
+<span><t t-esc="child.name"/></span>
+
+</li>
+
+</t>
+
+</ul>
+
+</t>
+
+</li>
+
+</t>
+
+</ul>
+
+</div>
+
+
+<!-- ================= MAIN CONTENT ================= -->
+
+<div class="pos_main_content">
+
+<!-- Header -->
+
+<div class="pos_header">
+
+<h1 t-if="state.activeMenu === 'dashboard'">Shoff POS System</h1>
+<h1 t-if="state.activeMenu === 'categories'">Product Categories</h1>
+<h1 t-if="state.activeMenu === 'inventory'">Inventory Management</h1>
+<h1 t-if="state.activeMenu === 'products'">Products</h1>
+
+</div>
+
+
+<!-- ================= DASHBOARD ================= -->
+
+<div t-if="state.activeMenu === 'dashboard'" class="pos_page">
+
+<div class="dashboard_grid">
+
+<div class="dashboard_card">
+<h3>Total Products</h3>
+<p><t t-esc="state.products.length"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Total Stock</h3>
+<p><t t-esc="getTotalStock()"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Low Stock</h3>
+<p><t t-esc="getLowStockItems().length"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Stock Value</h3>
+<p>$<t t-esc="getStockValue()"/></p>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ================= CATEGORIES ================= -->
+
+<div t-if="state.activeMenu === 'categories'" class="pos_page categories_page">
+
+<t t-set="stats" t-value="getCategoryStats()"/>
+
+<div class="dashboard_grid inventory_summary">
+
+<div class="dashboard_card">
+<h3>Total Categories</h3>
+<p><t t-esc="stats.totalCategories"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Total Products</h3>
+<p><t t-esc="stats.totalProducts"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Low Stock Categories</h3>
+<p class="low_stock_count">
+<t t-esc="stats.lowStockCategories"/>
+</p>
+</div>
+
+<div class="dashboard_card">
+<h3>Total Value</h3>
+<p>$<t t-esc="stats.totalValue.toFixed(2)"/></p>
+</div>
+
+</div>
+
+
+<div class="inventory_controls">
+
+<input type="text"
+       placeholder="Search categories..."
+       t-model="state.categoryFilter"
+       class="search_input"/>
+
+<button class="btn_confirm"
+        t-on-click="() => openCategoryModal()">
+
++ Add Category
+
+</button>
+
+</div>
+
+
+<div class="inventory_table_container">
+
+<table class="inventory_table">
+
+<thead>
+
+<tr>
+
+<th>Name</th>
+<th>Products</th>
+<th>Total Stock</th>
+<th>Low Stock</th>
+<th>Value</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+<t t-foreach="getFilteredAndSortedCategories()"
+   t-as="category"
+   t-key="category.name">
+
+<tr>
+
+<td><t t-esc="category.name"/></td>
+
+<td>
+<span class="status_badge good_stock">
+<t t-esc="category.productCount"/>
+</span>
+</td>
+
+<td><t t-esc="category.totalStock"/></td>
+
+<td>
+
+<span t-if="category.lowStockCount > 0"
+      class="status_badge low_stock">
+
+<t t-esc="category.lowStockCount"/>
+
+</span>
+
+<span t-else=""
+      class="status_badge good_stock">
+
+0
+
+</span>
+
+</td>
+
+<td>
+$<t t-esc="category.totalValue.toFixed(2)"/>
+</td>
+
+<td>
+
+<div class="action_buttons">
+
+<button class="btn_edit"
+        t-on-click="() => openCategoryModal(category)">✏</button>
+
+<button class="btn_cancel"
+        t-on-click="() => deleteCategory(category.name)">🗑</button>
+
+</div>
+
+</td>
+
+</tr>
+
+</t>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<!-- ================= INVENTORY ================= -->
+
+<div t-if="state.activeMenu === 'inventory'" class="pos_page">
+
+
+<div class="dashboard_grid inventory_summary">
+
+<div class="dashboard_card">
+<h3>Total Products</h3>
+<p><t t-esc="state.products.length"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Total Stock</h3>
+<p><t t-esc="getTotalStock()"/></p>
+</div>
+
+<div class="dashboard_card">
+<h3>Low Stock</h3>
+<p class="low_stock_count">
+<t t-esc="getLowStockItems().length"/>
+</p>
+</div>
+
+<div class="dashboard_card">
+<h3>Stock Value</h3>
+<p>$<t t-esc="getStockValue()"/></p>
+</div>
+
+</div>
+
+
+<div class="inventory_controls">
+
+<input type="text"
+       placeholder="Search products..."
+       t-model="state.inventoryFilter"
+       class="search_input"/>
+
+</div>
+
+
+<div class="inventory_table_container">
+
+<table class="inventory_table">
+
+<thead>
+
+<tr>
+
+<th>Product</th>
+<th>Category</th>
+<th>Stock</th>
+<th>Min</th>
+<th>Price</th>
+<th>Status</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+<t t-foreach="getFilteredAndSortedProducts()"
+   t-as="product"
+   t-key="product.id">
+
+<tr t-att-class="product.stock <= product.minStock ? 'low_stock_row' : ''">
+
+<td>
+
+<div class="product_info">
+
+<img t-att-src="product.image"
+     class="product_thumb"/>
+
+<span>
+<t t-esc="product.name"/>
+</span>
+
+</div>
+
+</td>
+
+<td><t t-esc="product.category"/></td>
+
+<td>
+<span class="stock_qty">
+<t t-esc="product.stock"/>
+</span>
+</td>
+
+<td><t t-esc="product.minStock"/></td>
+
+<td>$<t t-esc="product.price"/></td>
+
+<td>
+
+<span t-if="product.stock <= product.minStock"
+      class="status_badge low_stock">
+
+Low
+
+</span>
+
+<span t-else=""
+      class="status_badge good_stock">
+
+Good
+
+</span>
+
+</td>
+
+<td>
+
+<div class="action_buttons">
+
+<button class="btn_edit"
+        t-on-click="() => openStockModal(product)">📝</button>
+
+<button class="btn_view"
+        t-on-click="() => viewProductDetails(product)">👁</button>
+
+</div>
+
+</td>
+
+</tr>
+
+</t>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</t>
+
+</templates>

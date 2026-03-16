@@ -1,0 +1,79 @@
+<odoo>
+
+<!-- ROOT MENU -->
+<menuitem id="shop_pos_root"
+          name="Shop POS"
+          sequence="1"/>
+
+<!-- DASHBOARD -->
+<menuitem id="menu_pos_dashboard"
+          name="Dashboard"
+          parent="shop_pos_root"
+          action="shop_pos_dashboard"
+          sequence="1"/>
+
+<!-- POS SALE -->
+<menuitem id="menu_pos_sale"
+          name="POS / New Sale"
+          parent="shop_pos_root"
+          action="shop_pos_dashboard"
+          sequence="2"/>
+
+<!-- PRODUCTS -->
+<menuitem id="menu_pos_products"
+          name="Products"
+          parent="shop_pos_root"
+          action="shop_pos_product_action"
+          sequence="3"/>
+
+<!-- CATEGORIES -->
+<menuitem id="menu_pos_categories"
+          name="Categories"
+          parent="shop_pos_root"
+          sequence="4"/>
+
+<!-- INVENTORY -->
+<menuitem id="menu_pos_inventory"
+          name="Inventory"
+          parent="shop_pos_root"
+          action="action_cm_dashboard"
+          sequence="5"/>
+
+<!-- ORDERS -->
+<menuitem id="menu_pos_orders"
+          name="Orders"
+          parent="shop_pos_root"
+          action="shop_pos_order_action"
+          sequence="6"/>
+
+<!-- CUSTOMERS -->
+<menuitem id="menu_pos_customers"
+          name="Customers"
+          parent="shop_pos_root"
+          sequence="7"/>
+
+<!-- SUPPLIERS -->
+<menuitem id="menu_pos_suppliers"
+          name="Suppliers"
+          parent="shop_pos_root"
+          sequence="8"/>
+
+<!-- REPORTS -->
+<menuitem id="menu_pos_reports"
+          name="Reports"
+          parent="shop_pos_root"
+          sequence="9"/>
+
+<!-- EMPLOYEES -->
+<menuitem id="menu_pos_employees"
+          name="Employees"
+          parent="shop_pos_root"
+          sequence="10"/>
+
+<!-- SETTINGS -->
+<menuitem id="menu_pos_settings"
+          name="Settings"
+          parent="shop_pos_root"
+          sequence="11"/>
+
+</odoo>
